@@ -568,6 +568,12 @@ REST_FRAMEWORK = {
     'VIEW_NAME_FUNCTION': 'utilities.api.get_view_name',
 }
 
+#
+# DRF Spectacular
+#
+
+SPECTACULAR_SETTINGS = {
+}
 
 #
 # Graphene
