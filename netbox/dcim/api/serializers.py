@@ -51,7 +51,7 @@ class CabledObjectSerializer(serializers.ModelSerializer):
 
         return None
 
-    @extend_schema_field(serializers.DictField(allow_null=True))
+    @extend_schema_field(serializers.ListField)
     def get_link_peers(self, obj):
         """
         Return the appropriate serializer for the link termination model.
@@ -488,7 +488,7 @@ class InterfaceTemplateSerializer(ValidatedModelSerializer):
     class Meta:
         model = InterfaceTemplate
         fields = [
-            'id', 'url', 'display', 'device_type', 'module_type', 'name', 'label', 'type', 'mgmt_only', 'description',
+            'id', 'url', 'display', 'device_type', 'module_type', 'name', 'label', 'type', 'enabled', 'mgmt_only', 'description',
             'poe_mode', 'poe_type', 'created', 'last_updated',
         ]
 

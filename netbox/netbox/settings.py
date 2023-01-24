@@ -556,6 +556,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'netbox.api.renderers.FormlessBrowsableAPIRenderer',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_VERSION': REST_FRAMEWORK_VERSION,
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.AcceptHeaderVersioning',
     'SCHEMA_COERCE_METHOD_NAMES': {
