@@ -1,6 +1,8 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Group, User
 from django.db.models import Count
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -68,6 +70,7 @@ class TokenProvisionView(APIView):
     """
     permission_classes = []
 
+    @extend_schema(methods=["post"], responses={201: serializers.TokenSerializer})
     def post(self, request):
         serializer = serializers.TokenProvisionSerializer(data=request.data)
         serializer.is_valid()
@@ -114,6 +117,7 @@ class UserConfigViewSet(ViewSet):
     def get_queryset(self):
         return UserConfig.objects.filter(user=self.request.user)
 
+    @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def list(self, request):
         """
         Return the UserConfig for the currently authenticated User.
@@ -122,6 +126,7 @@ class UserConfigViewSet(ViewSet):
 
         return Response(userconfig.data)
 
+    @extend_schema(methods=["patch"], responses={201: OpenApiTypes.OBJECT})
     def patch(self, request):
         """
         Update the UserConfig for the currently authenticated User.

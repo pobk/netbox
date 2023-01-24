@@ -203,6 +203,7 @@ def get_results_limit(request):
 
 class AvailablePrefixesView(ObjectValidationMixin, APIView):
     queryset = Prefix.objects.all()
+    serializer_class = serializers.PrefixSerializer  # for drf-spectacular
 
     @extend_schema(methods=["get"], responses={200: serializers.AvailablePrefixSerializer(many=True)})
     def get(self, request, pk):
@@ -282,6 +283,7 @@ class AvailablePrefixesView(ObjectValidationMixin, APIView):
 
 class AvailableIPAddressesView(ObjectValidationMixin, APIView):
     queryset = IPAddress.objects.all()
+    serializer_class = serializers.IPAddressSerializer  # for drf-spectacular
 
     def get_parent(self, request, pk):
         raise NotImplemented()

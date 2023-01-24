@@ -2,7 +2,7 @@ import socket
 
 from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import OpenApiParameter
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -725,10 +725,12 @@ class ConnectedDeviceViewSet(ViewSet):
         required=True,
         type=OpenApiTypes.STR
     )
+    serializer_class = serializers.DeviceSerializer  # for drf-spectacular
 
     def get_view_name(self):
         return "Connected Device Locator"
 
+    @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def list(self, request):
 
         peer_device_name = request.query_params.get(self._device_param.name)

@@ -5,6 +5,7 @@ from django.apps import apps
 from django.conf import settings
 from django_rq.queues import get_connection
 from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
@@ -46,6 +47,7 @@ class StatusView(APIView):
     """
     permission_classes = [IsAuthenticatedOrLoginNotRequired]
 
+    @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def get(self, request):
         # Gather the version numbers from all installed Django apps
         installed_apps = {}
