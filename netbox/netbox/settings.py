@@ -574,6 +574,10 @@ REST_FRAMEWORK = {
 #
 
 SPECTACULAR_SETTINGS = {
+    "TITLE": "NetBox API",
+    "DESCRIPTION": "API to access NetBox",
+    "LICENSE": {"name": "Apache v2 License"},
+    "VERSION": VERSION,
 }
 
 #
