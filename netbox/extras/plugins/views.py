@@ -30,7 +30,7 @@ class InstalledPluginsAPIView(APIView):
     """
     permission_classes = [permissions.IsAdminUser]
     _ignore_model_permissions = True
-    exclude_from_schema = True
+    schema = None
 
     def get_view_name(self):
         return "Installed Plugins"
@@ -53,7 +53,7 @@ class InstalledPluginsAPIView(APIView):
 @extend_schema(exclude=True)
 class PluginsAPIRootView(APIView):
     _ignore_model_permissions = True
-    exclude_from_schema = True
+    schema = None
 
     def get_view_name(self):
         return "Plugins"

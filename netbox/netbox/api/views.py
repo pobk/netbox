@@ -13,17 +13,17 @@ from rq.worker import Worker
 from netbox.api.authentication import IsAuthenticatedOrLoginNotRequired
 
 
-@extend_schema(exclude=True)
 class APIRootView(APIView):
     """
     This is the root of NetBox's REST API. API endpoints are arranged by app and model name; e.g. `/api/dcim/sites/`.
     """
     _ignore_model_permissions = True
-    exclude_from_schema = True
+    # schema = None
 
     def get_view_name(self):
         return "API Root"
 
+    @extend_schema(exclude=True)
     def get(self, request, format=None):
 
         return Response({
