@@ -193,10 +193,6 @@ class RackViewSet(NetBoxModelViewSet):
     serializer_class = serializers.RackSerializer
     filterset_class = filtersets.RackFilterSet
 
-    @swagger_auto_schema(
-        responses={200: serializers.RackUnitSerializer(many=True)},
-        query_serializer=serializers.RackElevationDetailFilterSerializer
-    )
     @action(detail=True)
     def elevation(self, request, pk=None):
         """
@@ -418,17 +414,6 @@ class DeviceViewSet(ConfigContextQuerySetMixin, NetBoxModelViewSet):
 
         return serializers.DeviceWithConfigContextSerializer
 
-    @swagger_auto_schema(
-        manual_parameters=[
-            Parameter(
-                name='method',
-                in_='query',
-                required=True,
-                type=openapi.TYPE_STRING
-            )
-        ],
-        responses={'200': serializers.DeviceNAPALMSerializer}
-    )
     @action(detail=True, url_path='napalm')
     def napalm(self, request, pk):
         """
@@ -744,10 +729,6 @@ class ConnectedDeviceViewSet(ViewSet):
     def get_view_name(self):
         return "Connected Device Locator"
 
-    @swagger_auto_schema(
-        manual_parameters=[_device_param, _interface_param],
-        responses={'200': serializers.DeviceSerializer}
-    )
     def list(self, request):
 
         peer_device_name = request.query_params.get(self._device_param.name)
