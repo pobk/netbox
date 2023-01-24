@@ -4,6 +4,7 @@ from django import __version__ as DJANGO_VERSION
 from django.apps import apps
 from django.conf import settings
 from django_rq.queues import get_connection
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
@@ -12,13 +13,13 @@ from rq.worker import Worker
 from netbox.api.authentication import IsAuthenticatedOrLoginNotRequired
 
 
+@extend_schema(exclude=True)
 class APIRootView(APIView):
     """
     This is the root of NetBox's REST API. API endpoints are arranged by app and model name; e.g. `/api/dcim/sites/`.
     """
     _ignore_model_permissions = True
     exclude_from_schema = True
-    swagger_schema = None
 
     def get_view_name(self):
         return "API Root"
