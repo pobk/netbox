@@ -39,6 +39,7 @@ class CabledObjectSerializer(serializers.ModelSerializer):
     link_peers = serializers.SerializerMethodField(read_only=True)
     _occupied = serializers.SerializerMethodField(read_only=True)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_link_peers_type(self, obj):
         """
         Return the type of the peer link terminations, or None.
@@ -77,6 +78,7 @@ class ConnectedEndpointsSerializer(serializers.ModelSerializer):
     connected_endpoints = serializers.SerializerMethodField(read_only=True)
     connected_endpoints_reachable = serializers.SerializerMethodField(read_only=True)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_connected_endpoints_type(self, obj):
         if endpoints := obj.connected_endpoints:
             return f'{endpoints[0]._meta.app_label}.{endpoints[0]._meta.model_name}'
