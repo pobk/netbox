@@ -367,7 +367,7 @@ class IPRangeAvailableIPAddressesView(AvailableIPAddressesView):
 
 class AvailableVLANsView(ObjectValidationMixin, APIView):
     queryset = VLAN.objects.all()
-    filterset_class = serializers.VLANSerializer  # for drf-spectacular
+    serializer_class = serializers.VLANSerializer  # for drf-spectacular
 
     @extend_schema(methods=["get"], responses={200: serializers.AvailableVLANSerializer(many=True)})
     def get(self, request, pk):

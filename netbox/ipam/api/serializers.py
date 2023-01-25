@@ -104,6 +104,7 @@ class AggregateSerializer(NetBoxModelSerializer):
     family = ChoiceField(choices=IPAddressFamilyChoices, read_only=True)
     rir = NestedRIRSerializer()
     tenant = NestedTenantSerializer(required=False, allow_null=True)
+    prefix = serializers.CharField()
 
     class Meta:
         model = Aggregate
@@ -270,6 +271,7 @@ class PrefixSerializer(NetBoxModelSerializer):
     role = NestedRoleSerializer(required=False, allow_null=True)
     children = serializers.IntegerField(read_only=True)
     _depth = serializers.IntegerField(read_only=True)
+    prefix = serializers.CharField()
 
     class Meta:
         model = Prefix
