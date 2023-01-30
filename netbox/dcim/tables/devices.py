@@ -107,6 +107,9 @@ class PlatformTable(NetBoxTable):
     name = tables.Column(
         linkify=True
     )
+    manufacturer = tables.Column(
+        linkify=True
+    )
     device_count = columns.LinkedCountColumn(
         viewname='dcim:device_list',
         url_params={'platform_id': 'pk'},
@@ -580,7 +583,6 @@ class DeviceInterfaceTable(InterfaceTable):
             'wireless_lans', 'link_peer', 'connection', 'tags', 'vdcs', 'vrf', 'l2vpn', 'ip_addresses', 'fhrp_groups',
             'untagged_vlan', 'tagged_vlans', 'actions',
         )
-        order_by = ('name',)
         default_columns = (
             'pk', 'name', 'label', 'enabled', 'type', 'parent', 'lag', 'mtu', 'mode', 'description', 'ip_addresses',
             'cable', 'connection',

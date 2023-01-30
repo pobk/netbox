@@ -21,9 +21,7 @@ from utilities.paginator import EnhancedPaginator, get_paginate_count
 from utilities.permissions import get_permission_for_model
 from utilities.utils import count_related
 from utilities.views import GetReturnURLMixin, ObjectPermissionRequiredMixin, ViewTab, register_model_view
-from virtualization.filtersets import VirtualMachineFilterSet
 from virtualization.models import VirtualMachine
-from virtualization.tables import VirtualMachineTable
 from . import filtersets, forms, tables
 from .choices import DeviceFaceChoices
 from .constants import NONCONNECTABLE_IFACE_TYPES
@@ -212,6 +210,18 @@ class RegionListView(generic.ObjectListView):
 class RegionView(generic.ObjectView):
     queryset = Region.objects.all()
 
+    def get_extra_context(self, request, instance):
+        regions = instance.get_descendants(include_self=True)
+        related_models = (
+            (Site.objects.restrict(request.user, 'view').filter(region__in=regions), 'region_id'),
+            (Location.objects.restrict(request.user, 'view').filter(site__region__in=regions), 'region_id'),
+            (Rack.objects.restrict(request.user, 'view').filter(site__region__in=regions), 'region_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
+
 
 @register_model_view(Region, 'edit')
 class RegionEditView(generic.ObjectEditView):
@@ -276,6 +286,18 @@ class SiteGroupListView(generic.ObjectListView):
 class SiteGroupView(generic.ObjectView):
     queryset = SiteGroup.objects.all()
 
+    def get_extra_context(self, request, instance):
+        groups = instance.get_descendants(include_self=True)
+        related_models = (
+            (Site.objects.restrict(request.user, 'view').filter(group__in=groups), 'group_id'),
+            (Location.objects.restrict(request.user, 'view').filter(site__group__in=groups), 'site_group_id'),
+            (Rack.objects.restrict(request.user, 'view').filter(site__group__in=groups), 'site_group_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
+
 
 @register_model_view(SiteGroup, 'edit')
 class SiteGroupEditView(generic.ObjectEditView):
@@ -335,19 +357,25 @@ class SiteView(generic.ObjectView):
     queryset = Site.objects.prefetch_related('tenant__group')
 
     def get_extra_context(self, request, instance):
-        stats = {
-            'location_count': Location.objects.restrict(request.user, 'view').filter(site=instance).count(),
-            'rack_count': Rack.objects.restrict(request.user, 'view').filter(site=instance).count(),
-            'device_count': Device.objects.restrict(request.user, 'view').filter(site=instance).count(),
-            'prefix_count': Prefix.objects.restrict(request.user, 'view').filter(site=instance).count(),
-            'vlangroup_count': VLANGroup.objects.restrict(request.user, 'view').filter(
+        related_models = (
+            # DCIM
+            (Location.objects.restrict(request.user, 'view').filter(site=instance), 'site_id'),
+            (Rack.objects.restrict(request.user, 'view').filter(site=instance), 'site_id'),
+            (Device.objects.restrict(request.user, 'view').filter(site=instance), 'site_id'),
+            # Virtualization
+            (VirtualMachine.objects.restrict(request.user, 'view').filter(cluster__site=instance), 'site_id'),
+            # IPAM
+            (Prefix.objects.restrict(request.user, 'view').filter(site=instance), 'site_id'),
+            (ASN.objects.restrict(request.user, 'view').filter(sites=instance), 'site_id'),
+            (VLANGroup.objects.restrict(request.user, 'view').filter(
                 scope_type=ContentType.objects.get_for_model(Site),
                 scope_id=instance.pk
-            ).count(),
-            'vlan_count': VLAN.objects.restrict(request.user, 'view').filter(site=instance).count(),
-            'circuit_count': Circuit.objects.restrict(request.user, 'view').filter(terminations__site=instance).distinct().count(),
-            'vm_count': VirtualMachine.objects.restrict(request.user, 'view').filter(cluster__site=instance).count(),
-        }
+            ), 'site_id'),
+            (VLAN.objects.restrict(request.user, 'view').filter(site=instance), 'site_id'),
+            # Circuits
+            (Circuit.objects.restrict(request.user, 'view').filter(terminations__site=instance).distinct(), 'site_id'),
+        )
+
         locations = Location.objects.add_related_count(
             Location.objects.all(),
             Rack,
@@ -369,15 +397,9 @@ class SiteView(generic.ObjectView):
             parent_bay__isnull=True
         ).prefetch_related('device_type__manufacturer', 'parent_bay', 'device_role')
 
-        asns = ASN.objects.restrict(request.user, 'view').filter(sites=instance)
-        asn_count = asns.count()
-
-        stats.update({'asn_count': asn_count})
-
         return {
-            'stats': stats,
+            'related_models': related_models,
             'locations': locations,
-            'asns': asns,
             'nonracked_devices': nonracked_devices.order_by('-pk')[:10],
             'total_nonracked_devices_count': nonracked_devices.count(),
         }
@@ -441,9 +463,11 @@ class LocationView(generic.ObjectView):
     queryset = Location.objects.all()
 
     def get_extra_context(self, request, instance):
-        location_ids = instance.get_descendants(include_self=True).values_list('pk', flat=True)
-        rack_count = Rack.objects.filter(location__in=location_ids).count()
-        device_count = Device.objects.filter(location__in=location_ids).count()
+        locations = instance.get_descendants(include_self=True)
+        related_models = (
+            (Rack.objects.restrict(request.user, 'view').filter(location__in=locations), 'location_id'),
+            (Device.objects.restrict(request.user, 'view').filter(location__in=locations), 'location_id'),
+        )
 
         nonracked_devices = Device.objects.filter(
             location=instance,
@@ -452,8 +476,7 @@ class LocationView(generic.ObjectView):
         ).prefetch_related('device_type__manufacturer', 'parent_bay', 'device_role')
 
         return {
-            'rack_count': rack_count,
-            'device_count': device_count,
+            'related_models': related_models,
             'nonracked_devices': nonracked_devices.order_by('-pk')[:10],
             'total_nonracked_devices_count': nonracked_devices.count(),
         }
@@ -517,6 +540,15 @@ class RackRoleListView(generic.ObjectListView):
 @register_model_view(RackRole)
 class RackRoleView(generic.ObjectView):
     queryset = RackRole.objects.all()
+
+    def get_extra_context(self, request, instance):
+        related_models = (
+            (Rack.objects.restrict(request.user, 'view').filter(role=instance), 'role_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
 
 
 @register_model_view(RackRole, 'edit')
@@ -623,6 +655,11 @@ class RackView(generic.ObjectView):
     queryset = Rack.objects.prefetch_related('site__region', 'tenant__group', 'location', 'role')
 
     def get_extra_context(self, request, instance):
+        related_models = (
+            (Device.objects.restrict(request.user, 'view').filter(rack=instance), 'rack_id'),
+            (PowerFeed.objects.restrict(request.user).filter(rack=instance), 'rack_id'),
+        )
+
         # Get 0U devices located within the rack
         nonracked_devices = Device.objects.filter(
             rack=instance,
@@ -639,27 +676,37 @@ class RackView(generic.ObjectView):
         next_rack = peer_racks.filter(_name__gt=instance._name).first()
         prev_rack = peer_racks.filter(_name__lt=instance._name).reverse().first()
 
-        reservations = RackReservation.objects.restrict(request.user, 'view').filter(rack=instance)
-        power_feeds = PowerFeed.objects.restrict(request.user, 'view').filter(rack=instance).prefetch_related(
-            'power_panel'
-        )
-
-        device_count = Device.objects.restrict(request.user, 'view').filter(rack=instance).count()
-
         # Determine any additional parameters to pass when embedding the rack elevations
         svg_extra = '&'.join([
             f'highlight=id:{pk}' for pk in request.GET.getlist('device')
         ])
 
         return {
-            'device_count': device_count,
-            'reservations': reservations,
-            'power_feeds': power_feeds,
+            'related_models': related_models,
             'nonracked_devices': nonracked_devices,
             'next_rack': next_rack,
             'prev_rack': prev_rack,
             'svg_extra': svg_extra,
         }
+
+
+@register_model_view(Rack, 'reservations')
+class RackRackReservationsView(generic.ObjectChildrenView):
+    queryset = Rack.objects.all()
+    child_model = RackReservation
+    table = tables.RackReservationTable
+    filterset = filtersets.RackReservationFilterSet
+    template_name = 'dcim/rack/reservations.html'
+    tab = ViewTab(
+        label=_('Reservations'),
+        badge=lambda obj: obj.reservations.count(),
+        permission='dcim.view_rackreservation',
+        weight=510,
+        hide_if_empty=True
+    )
+
+    def get_children(self, request, parent):
+        return parent.reservations.restrict(request.user, 'view')
 
 
 @register_model_view(Rack, 'edit')
@@ -763,6 +810,7 @@ class RackReservationBulkDeleteView(generic.BulkDeleteView):
 class ManufacturerListView(generic.ObjectListView):
     queryset = Manufacturer.objects.annotate(
         devicetype_count=count_related(DeviceType, 'manufacturer'),
+        moduletype_count=count_related(ModuleType, 'manufacturer'),
         inventoryitem_count=count_related(InventoryItem, 'manufacturer'),
         platform_count=count_related(Platform, 'manufacturer')
     )
@@ -776,20 +824,15 @@ class ManufacturerView(generic.ObjectView):
     queryset = Manufacturer.objects.all()
 
     def get_extra_context(self, request, instance):
-        device_types = DeviceType.objects.restrict(request.user, 'view').filter(
-            manufacturer=instance
-        )
-        module_types = ModuleType.objects.restrict(request.user, 'view').filter(
-            manufacturer=instance
-        )
-        inventory_items = InventoryItem.objects.restrict(request.user, 'view').filter(
-            manufacturer=instance
+        related_models = (
+            (DeviceType.objects.restrict(request.user, 'view').filter(manufacturer=instance), 'manufacturer_id'),
+            (ModuleType.objects.restrict(request.user, 'view').filter(manufacturer=instance), 'manufacturer_id'),
+            (InventoryItem.objects.restrict(request.user, 'view').filter(manufacturer=instance), 'manufacturer_id'),
+            (Platform.objects.restrict(request.user, 'view').filter(manufacturer=instance), 'manufacturer_id'),
         )
 
         return {
-            'devicetype_count': device_types.count(),
-            'inventoryitem_count': inventory_items.count(),
-            'moduletype_count': module_types.count(),
+            'related_models': related_models,
         }
 
 
@@ -812,7 +855,10 @@ class ManufacturerBulkImportView(generic.BulkImportView):
 
 class ManufacturerBulkEditView(generic.BulkEditView):
     queryset = Manufacturer.objects.annotate(
-        devicetype_count=count_related(DeviceType, 'manufacturer')
+        devicetype_count=count_related(DeviceType, 'manufacturer'),
+        moduletype_count=count_related(ModuleType, 'manufacturer'),
+        inventoryitem_count=count_related(InventoryItem, 'manufacturer'),
+        platform_count=count_related(Platform, 'manufacturer')
     )
     filterset = filtersets.ManufacturerFilterSet
     table = tables.ManufacturerTable
@@ -821,7 +867,10 @@ class ManufacturerBulkEditView(generic.BulkEditView):
 
 class ManufacturerBulkDeleteView(generic.BulkDeleteView):
     queryset = Manufacturer.objects.annotate(
-        devicetype_count=count_related(DeviceType, 'manufacturer')
+        devicetype_count=count_related(DeviceType, 'manufacturer'),
+        moduletype_count=count_related(ModuleType, 'manufacturer'),
+        inventoryitem_count=count_related(InventoryItem, 'manufacturer'),
+        platform_count=count_related(Platform, 'manufacturer')
     )
     table = tables.ManufacturerTable
 
@@ -844,10 +893,12 @@ class DeviceTypeView(generic.ObjectView):
     queryset = DeviceType.objects.all()
 
     def get_extra_context(self, request, instance):
-        instance_count = Device.objects.restrict(request.user).filter(device_type=instance).count()
+        related_models = (
+            (Device.objects.restrict(request.user).filter(device_type=instance), 'device_type_id'),
+        )
 
         return {
-            'instance_count': instance_count,
+            'related_models': related_models,
         }
 
 
@@ -1082,10 +1133,12 @@ class ModuleTypeView(generic.ObjectView):
     queryset = ModuleType.objects.all()
 
     def get_extra_context(self, request, instance):
-        instance_count = Module.objects.restrict(request.user).filter(module_type=instance).count()
+        related_models = (
+            (Module.objects.restrict(request.user).filter(module_type=instance), 'module_type_id'),
+        )
 
         return {
-            'instance_count': instance_count,
+            'related_models': related_models,
         }
 
 
@@ -1640,41 +1693,15 @@ class DeviceRoleListView(generic.ObjectListView):
 class DeviceRoleView(generic.ObjectView):
     queryset = DeviceRole.objects.all()
 
+    def get_extra_context(self, request, instance):
+        related_models = (
+            (Device.objects.restrict(request.user, 'view').filter(device_role=instance), 'role_id'),
+            (VirtualMachine.objects.restrict(request.user, 'view').filter(role=instance), 'role_id'),
+        )
 
-@register_model_view(DeviceRole, 'devices', path='devices')
-class DeviceRoleDevicesView(generic.ObjectChildrenView):
-    queryset = DeviceRole.objects.all()
-    child_model = Device
-    table = tables.DeviceTable
-    filterset = filtersets.DeviceFilterSet
-    template_name = 'dcim/devicerole/devices.html'
-    tab = ViewTab(
-        label=_('Devices'),
-        badge=lambda obj: obj.devices.count(),
-        permission='dcim.view_device',
-        weight=400
-    )
-
-    def get_children(self, request, parent):
-        return Device.objects.restrict(request.user, 'view').filter(device_role=parent)
-
-
-@register_model_view(DeviceRole, 'virtual_machines', path='virtual-machines')
-class DeviceRoleVirtualMachinesView(generic.ObjectChildrenView):
-    queryset = DeviceRole.objects.all()
-    child_model = VirtualMachine
-    table = VirtualMachineTable
-    filterset = VirtualMachineFilterSet
-    template_name = 'dcim/devicerole/virtual_machines.html'
-    tab = ViewTab(
-        label=_('Virtual machines'),
-        badge=lambda obj: obj.virtual_machines.count(),
-        permission='virtualization.view_virtualmachine',
-        weight=500
-    )
-
-    def get_children(self, request, parent):
-        return VirtualMachine.objects.restrict(request.user, 'view').filter(role=parent)
+        return {
+            'related_models': related_models,
+        }
 
 
 @register_model_view(DeviceRole, 'edit')
@@ -1731,16 +1758,13 @@ class PlatformView(generic.ObjectView):
     queryset = Platform.objects.all()
 
     def get_extra_context(self, request, instance):
-        devices = Device.objects.restrict(request.user, 'view').filter(
-            platform=instance
-        )
-        virtual_machines = VirtualMachine.objects.restrict(request.user, 'view').filter(
-            platform=instance
+        related_models = (
+            (Device.objects.restrict(request.user, 'view').filter(platform=instance), 'platform_id'),
+            (VirtualMachine.objects.restrict(request.user, 'view').filter(platform=instance), 'platform_id'),
         )
 
         return {
-            'device_count': devices.count(),
-            'virtualmachine_count': virtual_machines.count()
+            'related_models': related_models,
         }
 
 
@@ -1798,14 +1822,7 @@ class DeviceView(generic.ObjectView):
         else:
             vc_members = []
 
-        services = Service.objects.restrict(request.user, 'view').filter(device=instance)
-        vdcs = VirtualDeviceContext.objects.restrict(request.user, 'view').filter(device=instance).prefetch_related(
-            'tenant'
-        )
-
         return {
-            'services': services,
-            'vdcs': vdcs,
             'vc_members': vc_members,
             'svg_extra': f'highlight=id:{instance.pk}'
         }
@@ -1994,22 +2011,15 @@ class DeviceBulkImportView(generic.BulkImportView):
     queryset = Device.objects.all()
     model_form = forms.DeviceImportForm
     table = tables.DeviceImportTable
-    template_name = 'dcim/device_import.html'
-
-
-class ChildDeviceBulkImportView(generic.BulkImportView):
-    queryset = Device.objects.all()
-    model_form = forms.ChildDeviceImportForm
-    table = tables.DeviceImportTable
-    template_name = 'dcim/device_import_child.html'
 
     def save_object(self, object_form, request):
         obj = object_form.save()
 
-        # Save the reverse relation to the parent device bay
-        device_bay = obj.parent_bay
-        device_bay.installed_device = obj
-        device_bay.save()
+        # For child devices, save the reverse relation to the parent device bay
+        if getattr(obj, 'parent_bay', None):
+            device_bay = obj.parent_bay
+            device_bay.installed_device = obj
+            device_bay.save()
 
         return obj
 
@@ -2112,6 +2122,21 @@ class ModuleListView(generic.ObjectListView):
 @register_model_view(Module)
 class ModuleView(generic.ObjectView):
     queryset = Module.objects.all()
+
+    def get_extra_context(self, request, instance):
+        related_models = (
+            (Interface.objects.restrict(request.user, 'view').filter(module=instance), 'module_id'),
+            (ConsolePort.objects.restrict(request.user, 'view').filter(module=instance), 'module_id'),
+            (ConsoleServerPort.objects.restrict(request.user, 'view').filter(module=instance), 'module_id'),
+            (PowerPort.objects.restrict(request.user, 'view').filter(module=instance), 'module_id'),
+            (PowerOutlet.objects.restrict(request.user, 'view').filter(module=instance), 'module_id'),
+            (FrontPort.objects.restrict(request.user, 'view').filter(module=instance), 'module_id'),
+            (RearPort.objects.restrict(request.user, 'view').filter(module=instance), 'module_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
 
 
 @register_model_view(Module, 'edit')
@@ -3435,6 +3460,15 @@ class PowerPanelListView(generic.ObjectListView):
 class PowerPanelView(generic.ObjectView):
     queryset = PowerPanel.objects.all()
 
+    def get_extra_context(self, request, instance):
+        related_models = (
+            (PowerFeed.objects.restrict(request.user).filter(power_panel=instance), 'power_panel_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
+
 
 @register_model_view(PowerPanel, 'edit')
 class PowerPanelEditView(generic.ObjectEditView):
@@ -3535,6 +3569,15 @@ class VirtualDeviceContextListView(generic.ObjectListView):
 @register_model_view(VirtualDeviceContext)
 class VirtualDeviceContextView(generic.ObjectView):
     queryset = VirtualDeviceContext.objects.all()
+
+    def get_extra_context(self, request, instance):
+        related_models = (
+            (Interface.objects.restrict(request.user, 'view').filter(vdcs__in=[instance]), 'vdc_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
 
 
 @register_model_view(VirtualDeviceContext, 'edit')

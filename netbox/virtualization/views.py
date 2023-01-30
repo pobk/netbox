@@ -10,7 +10,7 @@ from dcim.models import Device
 from dcim.tables import DeviceTable
 from extras.views import ObjectConfigContextView
 from ipam.models import IPAddress, Service
-from ipam.tables import AssignedIPAddressesTable, InterfaceVLANTable
+from ipam.tables import InterfaceVLANTable
 from netbox.views import generic
 from utilities.utils import count_related
 from utilities.views import ViewTab, register_model_view
@@ -36,17 +36,12 @@ class ClusterTypeView(generic.ObjectView):
     queryset = ClusterType.objects.all()
 
     def get_extra_context(self, request, instance):
-        clusters = Cluster.objects.restrict(request.user, 'view').filter(
-            type=instance
-        ).annotate(
-            device_count=count_related(Device, 'cluster'),
-            vm_count=count_related(VirtualMachine, 'cluster')
+        related_models = (
+            (Cluster.objects.restrict(request.user, 'view').filter(type=instance), 'type_id'),
         )
-        clusters_table = tables.ClusterTable(clusters, user=request.user, exclude=('type',))
-        clusters_table.configure(request)
 
         return {
-            'clusters_table': clusters_table,
+            'related_models': related_models,
         }
 
 
@@ -99,6 +94,15 @@ class ClusterGroupListView(generic.ObjectListView):
 @register_model_view(ClusterGroup)
 class ClusterGroupView(generic.ObjectView):
     queryset = ClusterGroup.objects.all()
+
+    def get_extra_context(self, request, instance):
+        related_models = (
+            (Cluster.objects.restrict(request.user, 'view').filter(group=instance), 'group_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
 
 
 @register_model_view(ClusterGroup, 'edit')
@@ -323,32 +327,7 @@ class VirtualMachineListView(generic.ObjectListView):
 
 @register_model_view(VirtualMachine)
 class VirtualMachineView(generic.ObjectView):
-    queryset = VirtualMachine.objects.prefetch_related('tenant__group')
-
-    def get_extra_context(self, request, instance):
-        # Interfaces
-        vminterfaces = VMInterface.objects.restrict(request.user, 'view').filter(
-            virtual_machine=instance
-        ).prefetch_related(
-            Prefetch('ip_addresses', queryset=IPAddress.objects.restrict(request.user))
-        )
-        vminterface_table = tables.VirtualMachineVMInterfaceTable(vminterfaces, user=request.user, orderable=False)
-        if request.user.has_perm('virtualization.change_vminterface') or \
-                request.user.has_perm('virtualization.delete_vminterface'):
-            vminterface_table.columns.show('pk')
-
-        # Services
-        services = Service.objects.restrict(request.user, 'view').filter(
-            virtual_machine=instance
-        ).prefetch_related(
-            Prefetch('ipaddresses', queryset=IPAddress.objects.restrict(request.user)),
-            'virtual_machine'
-        )
-
-        return {
-            'vminterface_table': vminterface_table,
-            'services': services,
-        }
+    queryset = VirtualMachine.objects.all()
 
 
 @register_model_view(VirtualMachine, 'interfaces')

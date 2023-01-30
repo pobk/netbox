@@ -2,6 +2,19 @@
 
 ## v3.4.4 (FUTURE)
 
+### Enhancements
+
+* [#10762](https://github.com/netbox-community/netbox/issues/10762) - Permit selection custom fields to have only one choice
+* [#11585](https://github.com/netbox-community/netbox/issues/11585) - Add IP address filters for services
+
+### Bug Fixes
+
+* [#11487](https://github.com/netbox-community/netbox/issues/11487) - Remove "set null" option from non-writable custom fields during bulk edit
+* [#11491](https://github.com/netbox-community/netbox/issues/11491) - Show edit/delete buttons in user tokens table
+* [#11528](https://github.com/netbox-community/netbox/issues/11528) - Permit import of devices using uploaded file
+* [#11555](https://github.com/netbox-community/netbox/issues/11555) - Avoid inadvertent interpretation of search query as regular expression under global search (previously [#11516](https://github.com/netbox-community/netbox/issues/11516))
+* [#11562](https://github.com/netbox-community/netbox/issues/11562) - Correct ordering of virtual chassis interfaces with duplicate names
+
 ---
 
 ## v3.4.3 (2023-01-20)
@@ -34,8 +47,9 @@
 * [#11483](https://github.com/netbox-community/netbox/issues/11483) - Apply configured formatting to custom date fields
 * [#11488](https://github.com/netbox-community/netbox/issues/11488) - Add missing `description` fields to several REST API serializers
 * [#11497](https://github.com/netbox-community/netbox/issues/11497) - Enforce `run_script` permission when executing scripts via REST API
-* [#11516](https://github.com/netbox-community/netbox/issues/11516) - Prevent text highlight utility from interpreting match as regex
+* ~[#11516](https://github.com/netbox-community/netbox/issues/11516) - Prevent text highlight utility from interpreting match as regex~
 * [#11522](https://github.com/netbox-community/netbox/issues/11522) - Correct tag links under contact & tenant list views
+* [#11537](https://github.com/netbox-community/netbox/issues/11537) - Remove obsolete "Connection" column from power feeds table
 * [#11544](https://github.com/netbox-community/netbox/issues/11544) - Catch ValidationError exception when filtering by invalid MAC address
 
 ---

@@ -37,8 +37,10 @@ class VRFView(generic.ObjectView):
     queryset = VRF.objects.all()
 
     def get_extra_context(self, request, instance):
-        prefix_count = Prefix.objects.restrict(request.user, 'view').filter(vrf=instance).count()
-        ipaddress_count = IPAddress.objects.restrict(request.user, 'view').filter(vrf=instance).count()
+        related_models = (
+            (Prefix.objects.restrict(request.user, 'view').filter(vrf=instance), 'vrf_id'),
+            (IPAddress.objects.restrict(request.user, 'view').filter(vrf=instance), 'vrf_id'),
+        )
 
         import_targets_table = tables.RouteTargetTable(
             instance.import_targets.all(),
@@ -50,8 +52,7 @@ class VRFView(generic.ObjectView):
         )
 
         return {
-            'prefix_count': prefix_count,
-            'ipaddress_count': ipaddress_count,
+            'related_models': related_models,
             'import_targets_table': import_targets_table,
             'export_targets_table': export_targets_table,
         }
@@ -102,21 +103,6 @@ class RouteTargetListView(generic.ObjectListView):
 class RouteTargetView(generic.ObjectView):
     queryset = RouteTarget.objects.all()
 
-    def get_extra_context(self, request, instance):
-        importing_vrfs_table = tables.VRFTable(
-            instance.importing_vrfs.all(),
-            orderable=False
-        )
-        exporting_vrfs_table = tables.VRFTable(
-            instance.exporting_vrfs.all(),
-            orderable=False
-        )
-
-        return {
-            'importing_vrfs_table': importing_vrfs_table,
-            'exporting_vrfs_table': exporting_vrfs_table,
-        }
-
 
 @register_model_view(RouteTarget, 'edit')
 class RouteTargetEditView(generic.ObjectEditView):
@@ -164,6 +150,15 @@ class RIRListView(generic.ObjectListView):
 @register_model_view(RIR)
 class RIRView(generic.ObjectView):
     queryset = RIR.objects.all()
+
+    def get_extra_context(self, request, instance):
+        related_models = (
+            (Aggregate.objects.restrict(request.user, 'view').filter(rir=instance), 'rir_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
 
 
 @register_model_view(RIR, 'edit')
@@ -219,12 +214,13 @@ class ASNView(generic.ObjectView):
     queryset = ASN.objects.all()
 
     def get_extra_context(self, request, instance):
-        sites = instance.sites.restrict(request.user, 'view')
-        providers = instance.providers.restrict(request.user, 'view')
+        related_models = (
+            (Site.objects.restrict(request.user, 'view').filter(asns__in=[instance]), 'asn_id'),
+            (Provider.objects.restrict(request.user, 'view').filter(asns__in=[instance]), 'asn_id'),
+        )
 
         return {
-            'sites_count': sites.count(),
-            'providers_count': providers.count(),
+            'related_models': related_models,
         }
 
 
@@ -367,6 +363,17 @@ class RoleListView(generic.ObjectListView):
 @register_model_view(Role)
 class RoleView(generic.ObjectView):
     queryset = Role.objects.all()
+
+    def get_extra_context(self, request, instance):
+        related_models = (
+            (Prefix.objects.restrict(request.user, 'view').filter(role=instance), 'role_id'),
+            (IPRange.objects.restrict(request.user, 'view').filter(role=instance), 'role_id'),
+            (VLAN.objects.restrict(request.user, 'view').filter(role=instance), 'role_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
 
 
 @register_model_view(Role, 'edit')
@@ -694,28 +701,10 @@ class IPAddressView(generic.ObjectView):
         related_ips_table = tables.IPAddressTable(related_ips, orderable=False)
         related_ips_table.configure(request)
 
-        # Find services belonging to the IP
-        service_filter = Q(ipaddresses=instance)
-
-        # Find services listening on all IPs on the assigned device/vm
-        try:
-            if instance.assigned_object and instance.assigned_object.parent_object:
-                parent_object = instance.assigned_object.parent_object
-
-                if isinstance(parent_object, VirtualMachine):
-                    service_filter |= (Q(virtual_machine=parent_object) & Q(ipaddresses=None))
-                elif isinstance(parent_object, Device):
-                    service_filter |= (Q(device=parent_object) & Q(ipaddresses=None))
-        except AttributeError:
-            pass
-
-        services = Service.objects.restrict(request.user, 'view').filter(service_filter)
-
         return {
             'parent_prefixes_table': parent_prefixes_table,
             'duplicate_ips_table': duplicate_ips_table,
             'related_ips_table': related_ips_table,
-            'services': services,
         }
 
 
@@ -839,11 +828,15 @@ class VLANGroupView(generic.ObjectView):
     queryset = VLANGroup.objects.all()
 
     def get_extra_context(self, request, instance):
+        related_models = (
+            (VLAN.objects.restrict(request.user, 'view').filter(group=instance), 'group_id'),
+        )
+
+        # TODO: Replace with embedded table
         vlans = VLAN.objects.restrict(request.user, 'view').filter(group=instance).prefetch_related(
             Prefetch('prefixes', queryset=Prefix.objects.restrict(request.user)),
             'tenant', 'site', 'role',
         ).order_by('vid')
-        vlans_count = vlans.count()
         vlans = add_available_vlans(vlans, vlan_group=instance)
 
         vlans_table = tables.VLANTable(vlans, user=request.user, exclude=('group',))
@@ -852,7 +845,7 @@ class VLANGroupView(generic.ObjectView):
         vlans_table.configure(request)
 
         return {
-            'vlans_count': vlans_count,
+            'related_models': related_models,
             'vlans_table': vlans_table,
         }
 

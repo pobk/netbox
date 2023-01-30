@@ -1,5 +1,6 @@
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext as _
 
 from circuits.models import Circuit
 from dcim.models import Cable, Device, Location, Rack, RackReservation, Site, VirtualDeviceContext
@@ -33,6 +34,16 @@ class TenantGroupListView(generic.ObjectListView):
 @register_model_view(TenantGroup)
 class TenantGroupView(generic.ObjectView):
     queryset = TenantGroup.objects.all()
+
+    def get_extra_context(self, request, instance):
+        groups = instance.get_descendants(include_self=True)
+        related_models = (
+            (Tenant.objects.restrict(request.user, 'view').filter(group__in=groups), 'group_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
 
 
 @register_model_view(TenantGroup, 'edit')
@@ -92,31 +103,36 @@ class TenantView(generic.ObjectView):
     queryset = Tenant.objects.all()
 
     def get_extra_context(self, request, instance):
-        stats = {
-            'site_count': Site.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'rack_count': Rack.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'rackreservation_count': RackReservation.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'location_count': Location.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'device_count': Device.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'vdc_count': VirtualDeviceContext.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'vrf_count': VRF.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'aggregate_count': Aggregate.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'prefix_count': Prefix.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'iprange_count': IPRange.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'ipaddress_count': IPAddress.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'vlan_count': VLAN.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'l2vpn_count': L2VPN.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'circuit_count': Circuit.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'virtualmachine_count': VirtualMachine.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'cluster_count': Cluster.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'cable_count': Cable.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'asn_count': ASN.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'wirelesslan_count': WirelessLAN.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-            'wirelesslink_count': WirelessLink.objects.restrict(request.user, 'view').filter(tenant=instance).count(),
-        }
+        related_models = [
+            # DCIM
+            (Site.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (Rack.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (RackReservation.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (Location.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (Device.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (VirtualDeviceContext.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (Cable.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            # IPAM
+            (VRF.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (Aggregate.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (Prefix.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (IPRange.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (IPAddress.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (ASN.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (VLAN.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (L2VPN.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            # Circuits
+            (Circuit.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            # Virtualization
+            (VirtualMachine.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (Cluster.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            # Wireless
+            (WirelessLAN.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+            (WirelessLink.objects.restrict(request.user, 'view').filter(tenant=instance), 'tenant_id'),
+        ]
 
         return {
-            'stats': stats,
+            'related_models': related_models,
         }
 
 
@@ -170,6 +186,16 @@ class ContactGroupListView(generic.ObjectListView):
 @register_model_view(ContactGroup)
 class ContactGroupView(generic.ObjectView):
     queryset = ContactGroup.objects.all()
+
+    def get_extra_context(self, request, instance):
+        groups = instance.get_descendants(include_self=True)
+        related_models = (
+            (Contact.objects.restrict(request.user, 'view').filter(group__in=groups), 'group_id'),
+        )
+
+        return {
+            'related_models': related_models,
+        }
 
 
 @register_model_view(ContactGroup, 'edit')
@@ -229,16 +255,12 @@ class ContactRoleView(generic.ObjectView):
     queryset = ContactRole.objects.all()
 
     def get_extra_context(self, request, instance):
-        contact_assignments = ContactAssignment.objects.restrict(request.user, 'view').filter(
-            role=instance
+        related_models = (
+            (ContactAssignment.objects.restrict(request.user, 'view').filter(role=instance), 'role_id'),
         )
-        contacts_table = tables.ContactAssignmentTable(contact_assignments, user=request.user)
-        contacts_table.columns.hide('role')
-        contacts_table.configure(request)
 
         return {
-            'contacts_table': contacts_table,
-            'assignment_count': ContactAssignment.objects.filter(role=instance).count(),
+            'related_models': related_models,
         }
 
 
@@ -288,19 +310,6 @@ class ContactListView(generic.ObjectListView):
 class ContactView(generic.ObjectView):
     queryset = Contact.objects.all()
 
-    def get_extra_context(self, request, instance):
-        contact_assignments = ContactAssignment.objects.restrict(request.user, 'view').filter(
-            contact=instance
-        )
-        assignments_table = tables.ContactAssignmentTable(contact_assignments, user=request.user)
-        assignments_table.columns.hide('contact')
-        assignments_table.configure(request)
-
-        return {
-            'assignments_table': assignments_table,
-            'assignment_count': ContactAssignment.objects.filter(contact=instance).count(),
-        }
-
 
 @register_model_view(Contact, 'edit')
 class ContactEditView(generic.ObjectEditView):
@@ -339,6 +348,13 @@ class ContactBulkDeleteView(generic.BulkDeleteView):
 #
 # Contact assignments
 #
+
+class ContactAssignmentListView(generic.ObjectListView):
+    queryset = ContactAssignment.objects.all()
+    filterset = filtersets.ContactAssignmentFilterSet
+    filterset_form = forms.ContactAssignmentFilterForm
+    table = tables.ContactAssignmentTable
+
 
 @register_model_view(ContactAssignment, 'edit')
 class ContactAssignmentEditView(generic.ObjectEditView):
