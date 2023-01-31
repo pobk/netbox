@@ -9,6 +9,7 @@ from dcim.api.nested_serializers import (
 )
 from dcim.models import DeviceRole, DeviceType, Location, Platform, Region, Site, SiteGroup
 from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from extras.choices import *
 from extras.models import *
 from extras.utils import FeatureQuery
@@ -97,6 +98,7 @@ class CustomFieldSerializer(ValidatedModelSerializer):
             'validation_minimum', 'validation_maximum', 'validation_regex', 'choices', 'created', 'last_updated',
         ]
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_data_type(self, obj):
         types = CustomFieldTypeChoices
         if obj.type == types.TYPE_INTEGER:

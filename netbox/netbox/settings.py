@@ -578,6 +578,7 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API to access NetBox",
     "LICENSE": {"name": "Apache v2 License"},
     "VERSION": VERSION,
+    'COMPONENT_SPLIT_REQUEST': True,
 }
 
 #
