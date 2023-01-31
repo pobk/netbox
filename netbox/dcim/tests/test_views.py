@@ -1578,8 +1578,6 @@ class PlatformTestCase(ViewTestCases.OrganizationalObjectViewTestCase):
             'name': 'Platform X',
             'slug': 'platform-x',
             'manufacturer': manufacturer.pk,
-            'napalm_driver': 'junos',
-            'napalm_args': None,
             'description': 'A new platform',
             'tags': [t.pk for t in tags],
         }
@@ -1599,7 +1597,6 @@ class PlatformTestCase(ViewTestCases.OrganizationalObjectViewTestCase):
         )
 
         cls.bulk_edit_data = {
-            'napalm_driver': 'ios',
             'description': 'New description',
         }
 

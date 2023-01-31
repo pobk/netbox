@@ -127,11 +127,11 @@ class PlatformTable(NetBoxTable):
     class Meta(NetBoxTable.Meta):
         model = models.Platform
         fields = (
-            'pk', 'id', 'name', 'manufacturer', 'device_count', 'vm_count', 'slug', 'napalm_driver', 'napalm_args',
+            'pk', 'id', 'name', 'manufacturer', 'device_count', 'vm_count', 'slug',
             'description', 'tags', 'actions', 'created', 'last_updated',
         )
         default_columns = (
-            'pk', 'name', 'manufacturer', 'device_count', 'vm_count', 'napalm_driver', 'description',
+            'pk', 'name', 'manufacturer', 'device_count', 'vm_count', 'description',
         )
 
 

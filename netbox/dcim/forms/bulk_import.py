@@ -323,7 +323,7 @@ class PlatformImportForm(NetBoxModelImportForm):
 
     class Meta:
         model = Platform
-        fields = ('name', 'slug', 'manufacturer', 'napalm_driver', 'napalm_args', 'description', 'tags')
+        fields = ('name', 'slug', 'manufacturer', 'description', 'tags')
 
 
 class BaseDeviceImportForm(NetBoxModelImportForm):

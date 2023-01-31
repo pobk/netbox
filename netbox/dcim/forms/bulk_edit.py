@@ -479,11 +479,6 @@ class PlatformBulkEditForm(NetBoxModelBulkEditForm):
         queryset=Manufacturer.objects.all(),
         required=False
     )
-    napalm_driver = forms.CharField(
-        max_length=50,
-        required=False
-    )
-    # TODO: Bulk edit support for napalm_args
     description = forms.CharField(
         max_length=200,
         required=False
@@ -491,9 +486,9 @@ class PlatformBulkEditForm(NetBoxModelBulkEditForm):
 
     model = Platform
     fieldsets = (
-        (None, ('manufacturer', 'napalm_driver', 'description')),
+        (None, ('manufacturer', 'description')),
     )
-    nullable_fields = ('manufacturer', 'napalm_driver', 'description')
+    nullable_fields = ('manufacturer', 'description')
 
 
 class DeviceBulkEditForm(NetBoxModelBulkEditForm):
