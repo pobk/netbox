@@ -1,8 +1,6 @@
 import django_filters
 from django.contrib.auth.models import User
 from django.utils.translation import gettext as _
-from drf_spectacular.utils import extend_schema_field
-from drf_spectacular.types import OpenApiTypes
 
 from extras.filtersets import LocalConfigContextFilterSet
 from ipam.models import ASN, L2VPN, IPAddress, VRF

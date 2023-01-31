@@ -1,14 +1,11 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from drf_spectacular.utils import extend_schema_field
-from drf_spectacular.types import OpenApiTypes
 from netaddr import AddrFormatError, IPNetwork
 
 from . import lookups, validators
 from .formfields import IPNetworkFormField
 
 
-@extend_schema_field(OpenApiTypes.STR)
 class BaseIPField(models.Field):
 
     def python_type(self):
@@ -70,7 +67,6 @@ IPNetworkField.register_lookup(lookups.NetFamily)
 IPNetworkField.register_lookup(lookups.NetMaskLength)
 
 
-@extend_schema_field(OpenApiTypes.STR)
 class IPAddressField(BaseIPField):
     """
     IP address (host address and mask)

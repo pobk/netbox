@@ -4,6 +4,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils.translation import gettext as _
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from netaddr.core import AddrFormatError
 
 from dcim.models import Device, Interface, Region, Site, SiteGroup
@@ -261,17 +263,17 @@ class PrefixFilterSet(NetBoxModelFilterSet, TenancyFilterSet):
         to_field_name='rd',
         label=_('VRF (RD)'),
     )
-    present_in_vrf_id = django_filters.ModelChoiceFilter(
+    present_in_vrf_id = extend_schema_field(OpenApiTypes.STR)(django_filters.ModelChoiceFilter(
         queryset=VRF.objects.all(),
         method='filter_present_in_vrf',
         label=_('VRF')
-    )
-    present_in_vrf = django_filters.ModelChoiceFilter(
+    ))
+    present_in_vrf = extend_schema_field(OpenApiTypes.STR)(django_filters.ModelChoiceFilter(
         queryset=VRF.objects.all(),
         method='filter_present_in_vrf',
         to_field_name='rd',
         label=_('VRF (RD)'),
-    )
+    ))
     region_id = TreeNodeMultipleChoiceFilter(
         queryset=Region.objects.all(),
         field_name='site__region',
@@ -489,17 +491,17 @@ class IPAddressFilterSet(NetBoxModelFilterSet, TenancyFilterSet):
         to_field_name='rd',
         label=_('VRF (RD)'),
     )
-    present_in_vrf_id = django_filters.ModelChoiceFilter(
+    present_in_vrf_id = extend_schema_field(OpenApiTypes.STR)(django_filters.ModelChoiceFilter(
         queryset=VRF.objects.all(),
         method='filter_present_in_vrf',
         label=_('VRF')
-    )
-    present_in_vrf = django_filters.ModelChoiceFilter(
+    ))
+    present_in_vrf = extend_schema_field(OpenApiTypes.STR)(django_filters.ModelChoiceFilter(
         queryset=VRF.objects.all(),
         method='filter_present_in_vrf',
         to_field_name='rd',
         label=_('VRF (RD)'),
-    )
+    ))
     device = MultiValueCharFilter(
         method='filter_device',
         field_name='name',
@@ -647,10 +649,10 @@ class FHRPGroupFilterSet(NetBoxModelFilterSet):
     auth_type = django_filters.MultipleChoiceFilter(
         choices=FHRPGroupAuthTypeChoices
     )
-    related_ip = django_filters.ModelMultipleChoiceFilter(
+    related_ip = extend_schema_field(OpenApiTypes.STR)(django_filters.ModelMultipleChoiceFilter(
         queryset=IPAddress.objects.all(),
         method='filter_related_ip'
-    )
+    ))
 
     class Meta:
         model = FHRPGroup
@@ -844,14 +846,14 @@ class VLANFilterSet(NetBoxModelFilterSet, TenancyFilterSet):
         choices=VLANStatusChoices,
         null_value=None
     )
-    available_on_device = django_filters.ModelChoiceFilter(
+    available_on_device = extend_schema_field(OpenApiTypes.STR)(django_filters.ModelChoiceFilter(
         queryset=Device.objects.all(),
         method='get_for_device'
-    )
-    available_on_virtualmachine = django_filters.ModelChoiceFilter(
+    ))
+    available_on_virtualmachine = extend_schema_field(OpenApiTypes.STR)(django_filters.ModelChoiceFilter(
         queryset=VirtualMachine.objects.all(),
         method='get_for_virtualmachine'
-    )
+    ))
     l2vpn_id = django_filters.ModelMultipleChoiceFilter(
         field_name='l2vpn_terminations__l2vpn',
         queryset=L2VPN.objects.all(),
