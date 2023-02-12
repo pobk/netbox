@@ -564,6 +564,11 @@ class ModuleTypeFilterForm(NetBoxModelFilterSetForm):
 
 class DeviceRoleFilterForm(NetBoxModelFilterSetForm):
     model = DeviceRole
+    config_template_id = DynamicModelMultipleChoiceField(
+        queryset=ConfigTemplate.objects.all(),
+        required=False,
+        label=_('Config template')
+    )
     tag = TagFilterField(model)
 
 

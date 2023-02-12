@@ -463,6 +463,10 @@ class DeviceRoleBulkEditForm(NetBoxModelBulkEditForm):
         widget=BulkEditNullBooleanSelect,
         label=_('VM role')
     )
+    config_template = DynamicModelChoiceField(
+        queryset=ConfigTemplate.objects.all(),
+        required=False
+    )
     description = forms.CharField(
         max_length=200,
         required=False
@@ -470,9 +474,9 @@ class DeviceRoleBulkEditForm(NetBoxModelBulkEditForm):
 
     model = DeviceRole
     fieldsets = (
-        (None, ('color', 'vm_role', 'description')),
+        (None, ('color', 'vm_role', 'config_template', 'description')),
     )
-    nullable_fields = ('color', 'description')
+    nullable_fields = ('color', 'config_template', 'description')
 
 
 class PlatformBulkEditForm(NetBoxModelBulkEditForm):
